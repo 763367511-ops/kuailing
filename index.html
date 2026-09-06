@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蒯翎 英语单词朗读</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh}
+  header{background:linear-gradient(135deg,#2B6CB0,#4299e1);color:#fff;text-align:center;padding:24px 16px 16px}
+  header h1{font-size:clamp(1.4rem,4vw,2rem);font-weight:700;letter-spacing:.5px}
+  header p{margin-top:6px;font-size:.95rem;opacity:.9}
+  .search-wrap{padding:14px 16px;background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:200}
+  .search-wrap input{width:100%;padding:10px 16px;border:2px solid #bee3f8;border-radius:999px;font-size:1rem;outline:none;transition:border .2s}
+  .search-wrap input:focus{border-color:#2B6CB0}
+  .tabs{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;overflow-x:auto;position:sticky;top:57px;z-index:190}
+  .tabs::-webkit-scrollbar{height:4px}.tabs::-webkit-scrollbar-thumb{background:#cbd5e0;border-radius:2px}
+  .tab-btn{flex-shrink:0;padding:7px 16px;border:none;border-radius:999px;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;background:#f7fafc;color:#4a5568}
+  .tab-btn.active{color:#fff}
+  .detail-panel{position:sticky;top:107px;z-index:100;background:#fff;border-bottom:2px solid #e2e8f0;padding:16px;display:flex;align-items:center;gap:16px;min-height:96px}
+  .detail-emoji{font-size:3rem;animation:none;min-width:56px;text-align:center}
+  .detail-info{flex:1;min-width:0}
+  .detail-word{font-size:clamp(1.6rem,5vw,2.4rem);font-weight:800;color:#1a202c;line-height:1.1;word-break:break-all}
+  .detail-cn{font-size:1rem;color:#718096;margin-top:4px}
+  .detail-btns{display:flex;flex-direction:column;gap:8px}
+  .btn-speak,.btn-slow{padding:8px 18px;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+  .btn-speak{background:#2B6CB0;color:#fff}
+  .btn-speak:hover{background:#2c5282}
+  .btn-slow{background:#e6f4ed;color:#276749;border:2px solid #276749}
+  .btn-slow:hover{background:#276749;color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;padding:16px}
+  .card{background:#fff;border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.07);transition:transform .18s,box-shadow .18s;border:2px solid transparent;user-select:none}
+  .card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.12)}
+  .card.selected{border-color:#2B6CB0}
+  .card-emoji{font-size:2rem;margin-bottom:6px;display:block}
+  .card-word{font-size:.95rem;font-weight:700;color:#1a202c;word-break:break-all}
+  .card-cn{font-size:.8rem;color:#718096;margin-top:3px}
+  .no-result{text-align:center;padding:48px 16px;color:#a0aec0;font-size:1rem}
+  /* animations */
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  @keyframes wave{0%,100%{transform:rotate(0)}25%{transform:rotate(15deg)}75%{transform:rotate(-15deg)}}
+  @keyframes swing{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+  .anim-bounce{animation:bounce .7s ease-in-out infinite}
+  .anim-spin{animation:spin 1s linear infinite}
+  .anim-pulse{animation:pulse .7s ease-in-out infinite}
+  .anim-float{animation:float 1.2s ease-in-out infinite}
+  .anim-shake{animation:shake .6s ease-in-out infinite}
+  .anim-wave{animation:wave .8s ease-in-out infinite}
+  .anim-swing{animation:swing .8s ease-in-out infinite}
+  @media(max-width:480px){
+    .detail-panel{flex-wrap:wrap}
+    .detail-btns{flex-direction:row}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;padding:12px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>蒯翎 英语单词朗读</h1>
+  <p>曹馨月老师 · 点击朗读 · 慢速练习</p>
+</header>
+<div class="search-wrap">
+  <input type="text" id="search" placeholder="搜索单词或中文含义…" oninput="filterWords()">
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="detail-panel" id="detail">
+  <div class="detail-emoji" id="dEmoji">👆</div>
+  <div class="detail-info">
+    <div class="detail-word" id="dWord">点击单词卡片开始</div>
+    <div class="detail-cn" id="dCn">选择一个单词来朗读</div>
+  </div>
+  <div class="detail-btns">
+    <button class="btn-speak" onclick="speak(1)">🔊 朗读</button>
+    <button class="btn-slow" onclick="speak(0.5)">🐢 慢读</button>
+  </div>
+</div>
+<div id="grid-container"></div>
+
+<script>
+const ANIMS=['bounce','spin','pulse','float','shake','wave','swing'];
+const units=[
+  {id:'u1',label:'Unit 1-3 学校',color:'#2B6CB0',bg:'#ebf4ff',words:[
+    ['subject','学科','📚'],['Chinese','语文','📖'],['English','英语','🇬🇧'],['PE','体育课','🏃'],
+    ['be good at','擅长','⭐'],['day','一天','📅'],['get up','起床','⏰'],['week','星期','📅'],
+    ['Monday','星期一','📅'],['Tuesday','星期二','📅'],['Wednesday','星期三','📅'],['Thursday','星期四','📅'],
+    ['Friday','星期五','📅'],['go to bed','去睡觉','🛏️'],['math','数学','➕'],['art','美术','🎨'],
+    ['music','音乐','🎵'],['science','科学','🔬']
+  ]},
+  {id:'u2',label:'Unit 4-7 运动',color:'#276749',bg:'#e6f4ed',words:[
+    ['play','玩','🎮'],['football','足球','⚽'],['different','不同的','🔄'],['hat','帽子','🎩'],
+    ['swimming','游泳','🏊'],['so','因此','➡️'],['season','季节','🌿'],['spring','春天','🌸'],
+    ['summer','夏天','☀️'],['autumn','秋天','🍂'],['winter','冬天','❄️'],['go skating','去溜冰','⛸️'],
+    ['go boating','去划船','⛵'],['kite','风筝','🪁'],['fly','飞','🪁']
+  ]},
+  {id:'u3',label:'Unit 8 服装',color:'#C05621',bg:'#fdf0e6',words:[
+    ['wear','穿戴','👕'],['snow','雪','❄️'],['cap','便帽','🧢'],['coat','外套','🧥'],
+    ['skirt','裙子','👗'],['look','看起来','👀'],['trousers','裤子','👖'],['back','回来','↩️'],
+    ['basketball','篮球','🏀'],['best','最好的','🏆'],['arm','手臂','💪'],['dancing','跳舞','💃'],
+    ['dinner','晚餐','🍽️']
+  ]}
+];
+
+let currentUnit=0, currentWord=null, animTimer=null;
+
+function init(){
+  const tabsEl=document.getElementById('tabs');
+  units.forEach((u,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tab-btn'+(i===0?' active':'');
+    btn.textContent=u.label;
+    btn.style.background=i===0?u.color:'#f7fafc';
+    btn.style.color=i===0?'#fff':'#4a5568';
+    btn.onclick=()=>switchUnit(i);
+    tabsEl.appendChild(btn);
+  });
+  renderGrid();
+}
+
+function switchUnit(i){
+  currentUnit=i;
+  document.querySelectorAll('.tab-btn').forEach((b,j)=>{
+    b.style.background=j===i?units[i].color:'#f7fafc';
+    b.style.color=j===i?'#fff':'#4a5568';
+    b.classList.toggle('active',j===i);
+  });
+  document.getElementById('search').value='';
+  renderGrid();
+}
+
+function renderGrid(filter=''){
+  const u=units[currentUnit];
+  const container=document.getElementById('grid-container');
+  const words=filter?u.words.filter(w=>w[0].toLowerCase().includes(filter.toLowerCase())||w[1].includes(filter)):u.words;
+  if(!words.length){container.innerHTML='<div class="no-result">没有找到匹配的单词</div>';return;}
+  container.innerHTML='<div class="grid">'+words.map((w,i)=>`
+    <div class="card" onclick="selectWord('${encodeURIComponent(w[0])}','${encodeURIComponent(w[1])}','${w[2]}')" style="border-color:transparent">
+      <span class="card-emoji">${w[2]}</span>
+      <div class="card-word">${w[0]}</div>
+      <div class="card-cn">${w[1]}</div>
+    </div>`).join('')+'</div>';
+}
+
+function filterWords(){
+  const q=document.getElementById('search').value.trim();
+  if(q){
+    // search across all units
+    const container=document.getElementById('grid-container');
+    let allWords=[];
+    units.forEach(u=>u.words.forEach(w=>{if(w[0].toLowerCase().includes(q.toLowerCase())||w[1].includes(q))allWords.push(w)}));
+    if(!allWords.length){container.innerHTML='<div class="no-result">没有找到匹配的单词</div>';return;}
+    container.innerHTML='<div class="grid">'+allWords.map(w=>`
+      <div class="card" onclick="selectWord('${encodeURIComponent(w[0])}','${encodeURIComponent(w[1])}','${w[2]}')">
+        <span class="card-emoji">${w[2]}</span>
+        <div class="card-word">${w[0]}</div>
+        <div class="card-cn">${w[1]}</div>
+      </div>`).join('')+'</div>';
+  } else {
+    renderGrid();
+  }
+}
+
+function selectWord(wordEnc,cnEnc,emoji){
+  const word=decodeURIComponent(wordEnc), cn=decodeURIComponent(cnEnc);
+  currentWord=word;
+  document.getElementById('dWord').textContent=word;
+  document.getElementById('dCn').textContent=cn;
+  const emojiEl=document.getElementById('dEmoji');
+  emojiEl.textContent=emoji;
+  // rotate animations
+  const animIdx=Math.floor(Math.random()*ANIMS.length);
+  emojiEl.className='detail-emoji anim-'+ANIMS[animIdx];
+  if(animTimer)clearTimeout(animTimer);
+  animTimer=setTimeout(()=>{emojiEl.className='detail-emoji'},3000);
+  speak(1);
+}
+
+function speak(rate){
+  if(!currentWord)return;
+  const word=currentWord;
+  // Try youdao first
+  const audio=new Audio(`https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=1`);
+  audio.playbackRate=rate;
+  audio.onerror=()=>fallback(word,rate);
+  audio.play().catch(()=>fallback(word,rate));
+}
+
+function fallback(word,rate){
+  const u=new SpeechSynthesisUtterance(word);
+  u.lang='en-US'; u.rate=rate;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+init();
+</script>
+</body>
+</html>
